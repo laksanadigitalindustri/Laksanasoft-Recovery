@@ -19,11 +19,7 @@ jobs:
       - name: Setup Build Environment
         run: |
           sudo apt-get update
-          sudo apt-get install -y bc build-essential ccache curl git gperf libxml2-utils \
-            lzop pngcrush schedtool squashfs-tools zlib1g-dev \
-            g++-multilib libc6-dev-i386 lib32ncurses5-dev x11proto-core-dev \
-            libx11-dev lib32z1-dev libgl1-mesa-dev libxml2-utils xsltproc unzip \
-            tar lz4 python3
+          sudo apt-get install -y bc build-essential ccache curl git gperf libxml2-utils lzop pngcrush schedtool squashfs-tools zlib1g-dev g++-multilib libc6-dev-i386 lib32ncurses5-dev x11proto-core-dev libx11-dev lib32z1-dev libgl1-mesa-dev libxml2-utils xsltproc unzip tar lz4 python3
 
       - name: Install Repo Tool
         run: |
@@ -41,30 +37,26 @@ jobs:
           repo init --depth=1 -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git -b twrp-12.1
           repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
 
-      - name: Clone Device Tree for Samsung Galaxy S10+ (beyond2lte)
+      - name: Clone Device Tree for Samsung Galaxy S10 Plus
         run: |
           cd ~/twrp
           git clone --depth=1 https://github.com/TeamWin/android_device_samsung_beyond2lte.git device/samsung/beyond2lte
 
-      - name: Inject Custom NetHunter & Signature Bypass Patches
+      - name: Inject Custom NetHunter and Signature Bypass Patches
         run: |
           cd ~/twrp/device/samsung/beyond2lte
-          cat << 'EOF' >> BoardConfig.mk
-
-# --- Laksanasoft NetHunter Custom Recovery Supercharged Flags ---
-TW_INCLUDE_CRYPTO := true
-TW_INCLUDE_NTFS_3G := true
-TW_EXCLUDE_DEFAULT_USB_INIT := false
-TW_ALLOW_EXPOSED_USE_GAPPS := true
-TW_BRIGHTNESS_PATH := "/sys/class/backlight/panel/brightness"
-TW_MAX_BRIGHTNESS := 255
-TW_DEFAULT_BRIGHTNESS := 150
-TW_EXTRA_LANGUAGES := true
-TW_INCLUDE_RESETPROP := true
-TW_INCLUDE_REPACKBOOT := true
-TW_ALWAYS_ALLOW_UNRESTRICTED_USB := true
-TW_FORCE_CPUINFO := true
-EOF
+          echo "TW_INCLUDE_CRYPTO := true" >> BoardConfig.mk
+          echo "TW_INCLUDE_NTFS_3G := true" >> BoardConfig.mk
+          echo "TW_EXCLUDE_DEFAULT_USB_INIT := false" >> BoardConfig.mk
+          echo "TW_ALLOW_EXPOSED_USE_GAPPS := true" >> BoardConfig.mk
+          echo "TW_BRIGHTNESS_PATH := \"/sys/class/backlight/panel/brightness\"" >> BoardConfig.mk
+          echo "TW_MAX_BRIGHTNESS := 255" >> BoardConfig.mk
+          echo "TW_DEFAULT_BRIGHTNESS := 150" >> BoardConfig.mk
+          echo "TW_EXTRA_LANGUAGES := true" >> BoardConfig.mk
+          echo "TW_INCLUDE_RESETPROP := true" >> BoardConfig.mk
+          echo "TW_INCLUDE_REPACKBOOT := true" >> BoardConfig.mk
+          echo "TW_ALWAYS_ALLOW_UNRESTRICTED_USB := true" >> BoardConfig.mk
+          echo "TW_FORCE_CPUINFO := true" >> BoardConfig.mk
           mkdir -p recovery/root/sbin
           cp $GITHUB_WORKSPACE/scripts/nethunter_recovery_rescue.sh recovery/root/sbin/nh-rescue
           chmod +x recovery/root/sbin/nh-rescue
@@ -77,7 +69,7 @@ EOF
           lunch twrp_beyond2lte-eng
           mka recoveryimage -j$(nproc --all)
 
-      - name: Package Odin Flashable TAR & LZ4 Artifacts
+      - name: Package Odin Flashable TAR and LZ4 Artifacts
         run: |
           cd ~/twrp
           OUT_DIR="out/target/product/beyond2lte"
