@@ -29,6 +29,7 @@ COMMON_LUNCH_CHOICES := \
     omni_beyond2lte-eng
 EOF
 
+# Drivers & Storage flags built-in directly inside recovery.img
 echo "TW_INCLUDE_CRYPTO := true" >> BoardConfig.mk
 echo "TW_INCLUDE_NTFS_3G := true" >> BoardConfig.mk
 echo "TW_EXCLUDE_DEFAULT_USB_INIT := false" >> BoardConfig.mk
@@ -45,6 +46,13 @@ echo "TW_INCLUDE_FASTBOOTD := true" >> BoardConfig.mk
 echo "BUILD_FASTBOOTD := true" >> BoardConfig.mk
 echo "TARGET_RECOVERY_DEVICE_MODULES += fastbootd" >> BoardConfig.mk
 
+# Embedded Driver & Storage flags (Mirroring boot.img structure)
+echo "BOARD_HAS_NO_REAL_SDCARD := false" >> BoardConfig.mk
+echo "RECOVERY_SDCARD_ON_DATA := false" >> BoardConfig.mk
+echo "TW_LOAD_VENDOR_MODULES := true" >> BoardConfig.mk
+echo "TW_USE_EXTERNAL_STORAGE := true" >> BoardConfig.mk
+echo "TW_HAS_MTP := true" >> BoardConfig.mk
+
 echo "[+] 3. Injecting NetHunter Rescue & External Boot Scripts..."
 mkdir -p recovery/root/sbin
 cp $GITHUB_WORKSPACE/scripts/nethunter_recovery_rescue.sh recovery/root/sbin/nh-rescue
@@ -52,7 +60,7 @@ cp $GITHUB_WORKSPACE/scripts/extboot.sh recovery/root/sbin/extboot
 cp $GITHUB_WORKSPACE/scripts/extboot.sh recovery/root/sbin/sdboot
 chmod +x recovery/root/sbin/nh-rescue recovery/root/sbin/extboot recovery/root/sbin/sdboot
 
-echo "[+] 4. Executing TWRP Build..."
+echo "[+] 4. Executing Custom Recovery Build..."
 cd ~/twrp
 export ALLOW_MISSING_DEPENDENCIES=true
 source build/envsetup.sh
