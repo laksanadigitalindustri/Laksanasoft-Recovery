@@ -1,0 +1,119 @@
+﻿name: Build Feature-Rich Custom Recovery
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  build:
+    name: Build Recovery for beyond2lte
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Build Environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bc build-essential ccache curl git gperf libxml2-utils lzop pngcrush schedtool squashfs-tools zlib1g-dev g++-multilib libc6-dev-i386 lib32ncurses5-dev x11proto-core-dev libx11-dev lib32z1-dev libgl1-mesa-dev libxml2-utils xsltproc unzip tar lz4 python3
+
+      - name: Install Repo Tool
+        run: |
+          mkdir -p ~/bin
+          curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
+          chmod a+x ~/bin/repo
+          echo "$HOME/bin" >> $GITHUB_PATH
+
+      - name: Initialize Minimal TWRP Source Tree
+        run: |
+          mkdir -p ~/twrp
+          cd ~/twrp
+          git config --global user.name "Laksanasoft"
+          git config --global user.email "laksanadigitalindustri@gmail.com"
+          repo init --depth=1 -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git -b twrp-11
+          repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
+
+      - name: Clone Device Tree for Samsung Galaxy S10 Plus
+        run: |
+          cd ~/twrp
+          git clone --depth=1 https://github.com/TeamWin/android_device_samsung_beyond2lte.git device/samsung/beyond2lte
+
+      - name: Inject NetHunter, Fastbootd, MicroSD, and USB OTG Live Boot Patches
+        run: |
+          cd ~/twrp
+          mkdir -p vendor/omni/config
+          touch vendor/omni/config/common.mk
+          if [ -d vendor/twrp ]; then
+            cp -rf vendor/twrp/* vendor/omni/ 2>/dev/null || true
+          fi
+
+          cd device/samsung/beyond2lte
+          if [ -f omni_beyond2lte.mk ]; then
+            cp omni_beyond2lte.mk twrp_beyond2lte.mk
+            sed -i 's/vendor\/omni/vendor\/twrp/g' twrp_beyond2lte.mk
+            sed -i 's/omni_beyond2lte/twrp_beyond2lte/g' twrp_beyond2lte.mk
+          fi
+
+          cat << 'EOF' > AndroidProducts.mk
+PRODUCT_MAKEFILES := \
+    $(LOCAL_DIR)/twrp_beyond2lte.mk \
+    $(LOCAL_DIR)/omni_beyond2lte.mk
+
+COMMON_LUNCH_CHOICES := \
+    twrp_beyond2lte-eng \
+    twrp_beyond2lte-userdebug \
+    omni_beyond2lte-eng
+EOF
+
+          echo "TW_INCLUDE_CRYPTO := true" >> BoardConfig.mk
+          echo "TW_INCLUDE_NTFS_3G := true" >> BoardConfig.mk
+          echo "TW_EXCLUDE_DEFAULT_USB_INIT := false" >> BoardConfig.mk
+          echo "TW_ALLOW_EXPOSED_USE_GAPPS := true" >> BoardConfig.mk
+          echo "TW_BRIGHTNESS_PATH := \"/sys/class/backlight/panel/brightness\"" >> BoardConfig.mk
+          echo "TW_MAX_BRIGHTNESS := 255" >> BoardConfig.mk
+          echo "TW_DEFAULT_BRIGHTNESS := 150" >> BoardConfig.mk
+          echo "TW_EXTRA_LANGUAGES := true" >> BoardConfig.mk
+          echo "TW_INCLUDE_RESETPROP := true" >> BoardConfig.mk
+          echo "TW_INCLUDE_REPACKBOOT := true" >> BoardConfig.mk
+          echo "TW_ALWAYS_ALLOW_UNRESTRICTED_USB := true" >> BoardConfig.mk
+          echo "TW_FORCE_CPUINFO := true" >> BoardConfig.mk
+          echo "TW_INCLUDE_FASTBOOTD := true" >> BoardConfig.mk
+          echo "BUILD_FASTBOOTD := true" >> BoardConfig.mk
+          echo "TARGET_RECOVERY_DEVICE_MODULES += fastbootd" >> BoardConfig.mk
+
+          mkdir -p recovery/root/sbin
+          cp $GITHUB_WORKSPACE/scripts/nethunter_recovery_rescue.sh recovery/root/sbin/nh-rescue
+          cp $GITHUB_WORKSPACE/scripts/extboot.sh recovery/root/sbin/extboot
+          cp $GITHUB_WORKSPACE/scripts/extboot.sh recovery/root/sbin/sdboot
+          chmod +x recovery/root/sbin/nh-rescue recovery/root/sbin/extboot recovery/root/sbin/sdboot
+
+      - name: Build Recovery Image
+        run: |
+          cd ~/twrp
+          export ALLOW_MISSING_DEPENDENCIES=true
+          source build/envsetup.sh
+          lunch twrp_beyond2lte-eng || lunch twrp_beyond2lte-userdebug || lunch omni_beyond2lte-eng
+          mka recoveryimage -j$(nproc --all)
+
+      - name: Package Odin Flashable TAR and LZ4 Artifacts
+        run: |
+          cd ~/twrp
+          OUT_DIR="out/target/product/beyond2lte"
+          mkdir -p $GITHUB_WORKSPACE/output
+          if [ -f "$OUT_DIR/recovery.img" ]; then
+            cp "$OUT_DIR/recovery.img" $GITHUB_WORKSPACE/output/recovery.img
+            cd $GITHUB_WORKSPACE/output
+            tar -cvf Laksanasoft-NetHunter-Recovery-beyond2lte.tar recovery.img
+            lz4 -9 recovery.img recovery.img.lz4
+            tar -cvf Laksanasoft-NetHunter-Recovery-beyond2lte-lz4.tar recovery.img.lz4
+          fi
+
+      - name: Upload Recovery Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Laksanasoft-NetHunter-Custom-Recovery-beyond2lte
+          path: output/*
