@@ -42,7 +42,7 @@ jobs:
           cd ~/twrp
           git clone --depth=1 https://github.com/TeamWin/android_device_samsung_beyond2lte.git device/samsung/beyond2lte
 
-      - name: Inject Custom NetHunter and Signature Bypass Patches
+      - name: Inject Custom NetHunter, Fastbootd, and MicroSD Boot Patches
         run: |
           cd ~/twrp/device/samsung/beyond2lte
           echo "TW_INCLUDE_CRYPTO := true" >> BoardConfig.mk
@@ -57,9 +57,17 @@ jobs:
           echo "TW_INCLUDE_REPACKBOOT := true" >> BoardConfig.mk
           echo "TW_ALWAYS_ALLOW_UNRESTRICTED_USB := true" >> BoardConfig.mk
           echo "TW_FORCE_CPUINFO := true" >> BoardConfig.mk
+          
+          # Fastbootd & MicroSD Engine Flags
+          echo "TW_INCLUDE_FASTBOOTD := true" >> BoardConfig.mk
+          echo "BUILD_FASTBOOTD := true" >> BoardConfig.mk
+          echo "TARGET_RECOVERY_DEVICE_MODULES += fastbootd" >> BoardConfig.mk
+
+          # Inject NetHunter Rescue & SD-Boot Tools
           mkdir -p recovery/root/sbin
           cp $GITHUB_WORKSPACE/scripts/nethunter_recovery_rescue.sh recovery/root/sbin/nh-rescue
-          chmod +x recovery/root/sbin/nh-rescue
+          cp $GITHUB_WORKSPACE/scripts/sdboot.sh recovery/root/sbin/sdboot
+          chmod +x recovery/root/sbin/nh-rescue recovery/root/sbin/sdboot
 
       - name: Build Recovery Image
         run: |
