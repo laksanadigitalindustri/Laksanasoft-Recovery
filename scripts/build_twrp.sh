@@ -5,8 +5,8 @@ echo "[+] 1. Setting up vendor/omni compatibility layer..."
 cd ~/twrp
 mkdir -p vendor/omni/config
 touch vendor/omni/config/common.mk
-if [ -d vendor/twrp ]; then
-  cp -rf vendor/twrp/* vendor/omni/ 2>/dev/null || true
+if [ -d vendor/twrp/config ]; then
+  cp -rf vendor/twrp/config/* vendor/omni/config/ 2>/dev/null || true
 fi
 
 echo "[+] 2. Configuring Samsung S10+ device tree..."
