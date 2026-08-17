@@ -45,6 +45,13 @@ jobs:
       - name: Inject NetHunter, Fastbootd, MicroSD, and USB OTG Live Boot Patches
         run: |
           cd ~/twrp/device/samsung/beyond2lte
+          
+          # Fix Product Makefile mapping if needed
+          if [ -f omni_beyond2lte.mk ] && [ ! -f twrp_beyond2lte.mk ]; then
+            cp omni_beyond2lte.mk twrp_beyond2lte.mk
+            sed -i 's/omni_beyond2lte/twrp_beyond2lte/g' twrp_beyond2lte.mk
+          fi
+
           echo "TW_INCLUDE_CRYPTO := true" >> BoardConfig.mk
           echo "TW_INCLUDE_NTFS_3G := true" >> BoardConfig.mk
           echo "TW_EXCLUDE_DEFAULT_USB_INIT := false" >> BoardConfig.mk
@@ -75,7 +82,7 @@ jobs:
           cd ~/twrp
           export ALLOW_MISSING_DEPENDENCIES=true
           source build/envsetup.sh
-          lunch twrp_beyond2lte-eng
+          lunch omni_beyond2lte-eng || lunch omni_beyond2lte-userdebug || lunch twrp_beyond2lte-userdebug || lunch twrp_beyond2lte-eng
           mka recoveryimage -j$(nproc --all)
 
       - name: Package Odin Flashable TAR and LZ4 Artifacts
