@@ -29,8 +29,8 @@ COMMON_LUNCH_CHOICES := \
     omni_beyond2lte-eng
 EOF
 
-# Hardware & Driver Partition Configurations
-echo "BOARD_RECOVERYIMAGE_PARTITION_SIZE := 67108864" >> BoardConfig.mk
+# Hardware & Driver Partition Configurations (67,633,152 Bytes Exact Hardware Match)
+echo "BOARD_RECOVERYIMAGE_PARTITION_SIZE := 67633152" >> BoardConfig.mk
 echo "BOARD_HAS_NO_REAL_SDCARD := false" >> BoardConfig.mk
 echo "RECOVERY_SDCARD_ON_DATA := false" >> BoardConfig.mk
 echo "TW_LOAD_VENDOR_MODULES := true" >> BoardConfig.mk
@@ -54,16 +54,24 @@ echo "TW_INCLUDE_FASTBOOTD := true" >> BoardConfig.mk
 echo "BUILD_FASTBOOTD := true" >> BoardConfig.mk
 echo "TARGET_RECOVERY_DEVICE_MODULES += fastbootd" >> BoardConfig.mk
 
-echo "[+] 3. Injecting NetHunter Rescue & External Boot Scripts..."
+echo "[+] 3. Injecting Auto-Boot Detect Hook & NetHunter Rescue Scripts..."
 mkdir -p recovery/root/sbin
 cp $GITHUB_WORKSPACE/scripts/nethunter_recovery_rescue.sh recovery/root/sbin/nh-rescue
 cp $GITHUB_WORKSPACE/scripts/extboot.sh recovery/root/sbin/extboot
 cp $GITHUB_WORKSPACE/scripts/extboot.sh recovery/root/sbin/sdboot
 chmod +x recovery/root/sbin/nh-rescue recovery/root/sbin/extboot recovery/root/sbin/sdboot
 
+# Inject Auto-Detect SD/USB Boot service into recovery init.rc
+mkdir -p recovery/root/etc
+cat << 'EOF' > recovery/root/etc/init.recovery.sdboot.rc
+on boot
+    exec /sbin/sdboot --auto-detect
+EOF
+echo "import /etc/init.recovery.sdboot.rc" >> recovery/root/init.rc
+
 echo "[+] 4. Executing Custom Recovery Build..."
 cd ~/twrp
 export ALLOW_MISSING_DEPENDENCIES=true
 source build/envsetup.sh
 lunch twrp_beyond2lte-eng || lunch twrp_beyond2lte-userdebug || lunch omni_beyond2lte-eng
-mka recoveryimage -j$(nproc --all) || mka bootimage -j$(nproc --all)
+mka recoveryimage -j$(nproc --all)
