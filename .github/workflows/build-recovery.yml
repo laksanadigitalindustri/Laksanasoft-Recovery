@@ -10,7 +10,7 @@ on:
 jobs:
   build:
     name: Build Recovery for beyond2lte
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
@@ -19,7 +19,7 @@ jobs:
       - name: Setup Build Environment
         run: |
           sudo apt-get update
-          sudo apt-get install -y bc build-essential ccache curl git gperf libxml2-utils lzop pngcrush schedtool squashfs-tools zlib1g-dev g++-multilib libc6-dev-i386 lib32ncurses5-dev x11proto-core-dev libx11-dev lib32z1-dev libgl1-mesa-dev libxml2-utils xsltproc unzip tar lz4
+          sudo apt-get install -y bc build-essential ccache curl git gperf libxml2-utils lzop pngcrush schedtool squashfs-tools zlib1g-dev g++-multilib libc6-dev-i386 lib32ncurses5-dev x11proto-core-dev libx11-dev lib32z1-dev libgl1-mesa-dev libxml2-utils xsltproc unzip tar lz4 python3
 
       - name: Install Repo Tool
         run: |
