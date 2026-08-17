@@ -49,15 +49,17 @@ jobs:
 
       - name: Package Odin Flashable TAR and LZ4 Artifacts
         run: |
-          cd ~/twrp
-          OUT_DIR="out/target/product/beyond2lte"
           mkdir -p $GITHUB_WORKSPACE/output
-          if [ -f "$OUT_DIR/recovery.img" ]; then
-            cp "$OUT_DIR/recovery.img" $GITHUB_WORKSPACE/output/recovery.img
+          cd ~/twrp
+          find out/ -name "recovery.img" -exec cp {} $GITHUB_WORKSPACE/output/recovery.img \;
+          if [ -f "$GITHUB_WORKSPACE/output/recovery.img" ]; then
             cd $GITHUB_WORKSPACE/output
             tar -cvf Laksanasoft-NetHunter-Recovery-beyond2lte.tar recovery.img
             lz4 -9 recovery.img recovery.img.lz4
             tar -cvf Laksanasoft-NetHunter-Recovery-beyond2lte-lz4.tar recovery.img.lz4
+          else
+            echo "[!] Warning: recovery.img not found, packaging output directory contents..."
+            cp -rf out/target/product/* $GITHUB_WORKSPACE/output/ 2>/dev/null || true
           fi
 
       - name: Upload Recovery Artifacts
